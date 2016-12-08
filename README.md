@@ -1,3 +1,8 @@
+Code used while testing MNIST:
+```
+python GMAN.py --dataset mnist --num_disc 1 --lam 0. --path mnist/arith1_0 --objective modified --num_hidden 128
+```
+
 The repository contains code to experiment on Generative Adversarial Nets
 with multiple Discriminators.
 
