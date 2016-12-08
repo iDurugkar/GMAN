@@ -307,6 +307,8 @@ def main(_):
     iterations = FLAGS.iterations
     lam = FLAGS.lam
     boosting_variant = FLAGS.boosting
+    print('boosting_variant')
+    print(boosting_variant is None)
 
     # Plot random images from dataset
     c = 'Greys_r'
