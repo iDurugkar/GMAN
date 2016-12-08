@@ -212,12 +212,12 @@ class GMAN:
                 sign = 1.
             _G_losses = [tf.expand_dims(loss, 0) for loss in self.G_losses]
             _G_losses = tf.concat(0,_G_losses)
-            self.G_loss = mix_prediction(None, _G_losses, self.l,
+            self.G_loss = mix_prediction(_G_losses, self.l,
                                          mean_typ=mixing, weight_typ=self.weight_type,
                                          sign=sign)
 
             # Define minimax objective for generator
-            self.V_G = mix_prediction(None, self.V_D, self.l,
+            self.V_G = mix_prediction(self.V_D, self.l,
                                       mean_typ=mixing, weight_typ=self.weight_type,
                                       sign=sign)
 
@@ -261,13 +261,13 @@ class GMAN:
             sign = 1.
         _G_losses = [tf.expand_dims(loss, 0) for loss in self.G_losses]
         _G_losses = tf.concat(0, _G_losses)
-        self.G_loss = mix_prediction(None, _G_losses, self.l,
+        self.G_loss = mix_prediction(_G_losses, self.l,
                                      mean_typ=mixing, weight_typ=self.weight_type,
                                      sign=sign)
         tf.scalar_summary('G_loss', self.G_loss)
 
         # Define minimax objectives for generator
-        self.V_G = mix_prediction(None, self.V_D, self.l,
+        self.V_G = mix_prediction(self.V_D, self.l,
                                   mean_typ=mixing, weight_typ=self.weight_type,
                                   sign=sign)
 

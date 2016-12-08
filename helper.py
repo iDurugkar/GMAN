@@ -178,30 +178,32 @@ def conv2d_alt(input, filter_shape, bias_shape, stride=2, name='conv'):
     return conv + bias
 
 
-def mix_prediction(temp_ds, temp_losses, lam=0., mean_typ='arithmetic', weight_typ='normal', sign=-1.):
-    # temp_ds & temp_losses are shape (# of discriminators)
-    # output is a scalar
+def mix_prediction(losses, lam=0., mean_typ='arithmetic', weight_typ='normal', sign=-1., sf=1e-3):
+    # losses is shape (# of discriminators x batch_size)
+    # output is scalar
+
+    assert lam >= 0.
+    assert mean_typ in ['arithmetic','geometric','harmonic']
+    assert weight_typ in ['normal','log']
+    assert sign == 1. or sign == -1.
+    assert sf > 0.
 
     if lam == 0.:
-        weights = tf.ones_like(temp_losses)
+        weights = tf.ones_like(losses)
     else:
         if weight_typ == 'log':
-            weights = tf.pow(temp_losses, lam)
+            weights = tf.pow(losses, lam)
         else:
-            weights = tf.exp(lam * temp_losses)
+            weights = tf.exp(lam * losses)
 
     if mean_typ == 'arithmetic':
-        loss = weighted_arithmetic(weights, temp_losses)
+        loss = weighted_arithmetic(weights, losses)
     elif mean_typ == 'geometric':
-        log_temp_losses = tf.log(sign*temp_losses)
-        loss = sign*tf.exp(weighted_arithmetic(weights, log_temp_losses))
-    elif mean_typ == 'harmonic':
-        mn = tf.reduce_min(temp_losses) - 1e-3
-        inv_temp_losses = tf.inv(temp_losses-mn)
-        loss = mn + tf.inv(weighted_arithmetic(weights, inv_temp_losses))
+        log_losses = tf.log(sign*losses)
+        loss = sign*tf.exp(weighted_arithmetic(weights, log_losses))
     else:
-        exponents = tf.exp(lam * temp_ds)
-        loss = tf.div(tf.reduce_sum(tf.mul(temp_losses, exponents), reduction_indices=0),
-                      tf.reduce_sum(exponents, reduction_indices=0))
+        mn = tf.reduce_min(losses) - sf
+        inv_losses = tf.inv(losses-mn)
+        loss = mn + tf.inv(weighted_arithmetic(weights, inv_losses))
     
     return loss
