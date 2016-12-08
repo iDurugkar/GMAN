@@ -67,10 +67,10 @@ class GMAN:
             self.G_vars = [var for var in t_vars if (self.name + '/generator') in var.name]
             self.D_vars = [[var for var in t_vars if ('%s/discriminator_%d' % (self.name, num)) in var.name]
                            for num in range(self.N)]
-            print(self.G_vars)
-            print(len(self.G_vars))
-            print(self.D_vars)
-            print(len(self.D_vars[0]))
+            # print(self.G_vars)
+            # print(len(self.G_vars))
+            # print(self.D_vars)
+            # print(len(self.D_vars[0]))
             # import sys
             # sys.stdout.flush()
             
