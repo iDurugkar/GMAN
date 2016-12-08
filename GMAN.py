@@ -19,7 +19,7 @@ class GMAN:
         self.num_hidden = num_hidden
         self.batch_size = batch_size
         self.N = num_disc
-        self.base_prob = 0.4
+        self.base_prob = 0.5
         self.delta_p = (0.5 - self.base_prob) / self.N
         self.h_adv = num_hidden
         self.name = name
@@ -62,13 +62,15 @@ class GMAN:
 
             # Retrieve trainable weights
             t_vars = tf.trainable_variables()
-            for var in t_vars:
-                print(var.name)
+            # for var in t_vars:
+            #     print(var.name)
             self.G_vars = [var for var in t_vars if (self.name + '/generator') in var.name]
             self.D_vars = [[var for var in t_vars if ('%s/discriminator_%d' % (self.name, num)) in var.name]
                            for num in range(self.N)]
-            # print(self.G_vars)
-            # print(self.D_vars)
+            print(self.G_vars)
+            print(len(self.G_vars))
+            print(self.D_vars)
+            print(len(self.D_vars[0]))
             # import sys
             # sys.stdout.flush()
             
@@ -83,14 +85,14 @@ class GMAN:
                     self.assign_weights.append(tf.assign(self.G_vars[j], G_weights[j]))
 
             # Define Discriminator losses
-            with tf.name_scope('D_Loss'):
+            with tf.variable_scope('D_Loss'):
                 if boosting_variant is None:
                     self.get_D_losses(obj=objective)
                 else:
                     self.get_D_boosted_losses(boosting_variant, obj=objective)
 
             # Define Generator losses
-            with tf.name_scope('G_Loss'):
+            with tf.variable_scope('G_Loss'):
                 if boosting_variant is None:
                     self.get_G_loss(mixing, obj=objective)
                 else:
@@ -239,6 +241,8 @@ class GMAN:
         tf.scalar_summary('D_0_x', tf.reduce_mean(self.Dr[0]))
         tf.scalar_summary('min_D_x', self.min_Dr)
         tf.scalar_summary('max_D_x', self.max_Dr)
+        tf.histogram_summary('D_f', self.Df)
+        tf.histogram_summary('D_r', self.Dr)
 
         # Define discriminator losses
         # if obj == 'original':

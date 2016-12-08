@@ -78,8 +78,8 @@ def generator(gan):
 
 def discriminator_old(gan, inp, num, keep_prob, reuse=False, gpu_num=0):
     hidden_units = gan.h_adv
-    print(hidden_units)
-    print(keep_prob)
+    # print(hidden_units)
+    # print(keep_prob)
     with tf.device('/gpu:%d' % gpu_num):
         with tf.name_scope('discriminator_%d' % num) and tf.variable_scope('discriminator_%d' % num):
             if reuse:

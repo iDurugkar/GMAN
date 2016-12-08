@@ -161,20 +161,10 @@ def dense(input, weight_shape, bias_shape):
 
 
 def conv2d(input, filter_shape, bias_shape, stride=2, name='conv'):
-    # with tf.variable_scope(name):
-    filter = tf.get_variable('filter', shape=filter_shape, initializer=tf.truncated_normal_initializer(stddev=0.02))
+    w = tf.get_variable('filter', shape=filter_shape, initializer=tf.truncated_normal_initializer(stddev=0.02))
     bias = tf.get_variable('b', shape=bias_shape, initializer=tf.constant_initializer(0.0))
-    conv = tf.nn.conv2d(input, filter,
+    conv = tf.nn.conv2d(input, w,
                         strides=[1, stride, stride, 1], padding='SAME')
-    return conv + bias
-
-
-def conv2d_alt(input, filter_shape, bias_shape, stride=2, name='conv'):
-    with tf.variable_scope(name):
-        filter = tf.get_variable('filter', shape=filter_shape, initializer=tf.truncated_normal_initializer(stddev=0.02))
-        bias = tf.get_variable('b', shape=bias_shape, initializer=tf.constant_initializer(0.0))
-        conv = tf.nn.conv2d(input, filter,
-                            strides=[1, stride, stride, 1], padding='SAME')
     return conv + bias
 
 
