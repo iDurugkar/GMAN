@@ -62,17 +62,9 @@ class GMAN:
 
             # Retrieve trainable weights
             t_vars = tf.trainable_variables()
-            # for var in t_vars:
-            #     print(var.name)
             self.G_vars = [var for var in t_vars if (self.name + '/generator') in var.name]
             self.D_vars = [[var for var in t_vars if ('%s/discriminator_%d' % (self.name, num)) in var.name]
                            for num in range(self.N)]
-            # print(self.G_vars)
-            # print(len(self.G_vars))
-            # print(self.D_vars)
-            # print(len(self.D_vars[0]))
-            # import sys
-            # sys.stdout.flush()
             
             # Assign values to weights (if given)
             self.assign_weights = []
@@ -97,6 +89,9 @@ class GMAN:
                     self.get_G_loss(mixing, obj=objective)
                 else:
                     self.get_G_boosted_loss(boosting_variant, mixing, obj=objective)
+
+            # Add Summaries
+            self.add_summaries()
 
             # Construct Discriminator updates
             self.lrd = tf.placeholder(dtype=tf.float32)
@@ -162,16 +157,6 @@ class GMAN:
         # logits --> probabilities
         self.Df = [sigmoid(logit) for logit in self.Df_logits]
         self.Dr = [sigmoid(logit) for logit in self.Dr_logits]
-        self.min_Df = tf.reduce_min(self.Df)
-        self.max_Df = tf.reduce_max(self.Df)
-        self.min_Dr = tf.reduce_min(self.Dr)
-        self.max_Dr = tf.reduce_max(self.Dr)
-        tf.scalar_summary('D_0_z', tf.reduce_mean(self.Df[0]))
-        tf.scalar_summary('min_D_z', self.min_Df)
-        tf.scalar_summary('max_D_z', self.max_Df)
-        tf.scalar_summary('D_0_x', tf.reduce_mean(self.Dr[0]))
-        tf.scalar_summary('min_D_x', self.min_Dr)
-        tf.scalar_summary('max_D_x', self.max_Dr)
 
         # Define discriminator losses
         if obj == 'original':
@@ -231,28 +216,9 @@ class GMAN:
         # logits --> probabilities
         self.Df = [sigmoid(logit) for logit in self.Df_logits]
         self.Dr = [sigmoid(logit) for logit in self.Dr_logits]
-        self.min_Df = tf.reduce_min(self.Df)
-        self.max_Df = tf.reduce_max(self.Df)
-        self.min_Dr = tf.reduce_min(self.Dr)
-        self.max_Dr = tf.reduce_max(self.Dr)
-        tf.scalar_summary('D_0_z', tf.reduce_mean(self.Df[0]))
-        tf.scalar_summary('min_D_z', self.min_Df)
-        tf.scalar_summary('max_D_z', self.max_Df)
-        tf.scalar_summary('D_0_x', tf.reduce_mean(self.Dr[0]))
-        tf.scalar_summary('min_D_x', self.min_Dr)
-        tf.scalar_summary('max_D_x', self.max_Dr)
-        tf.histogram_summary('D_f', self.Df)
-        tf.histogram_summary('D_r', self.Dr)
 
-        # Define discriminator losses
-        # if obj == 'original':
         self.D_losses = [tf.reduce_mean(-tf.log(self.Dr[ind])-tf.log(1-self.Df[ind]))
                          for ind in range(len(self.Dr))]
-        # else:
-        #     self.D_losses = [tf.reduce_mean(-tf.log(self.Dr[ind])-tf.log(1-self.Df[ind]))
-        #                      for ind in range(len(self.Dr))]
-        for ind in range(len(self.Dr)):
-            tf.scalar_summary('D_%d_Loss' % ind, self.D_losses[ind])
 
         # Define minimax objectives for discriminators
         self.V_D = [tf.reduce_mean(tf.log(self.Dr[ind]) + tf.log(1-self.Df[ind])) for ind in range(len(self.Dr))]
@@ -275,12 +241,32 @@ class GMAN:
         self.G_loss = mix_prediction(_G_losses, self.l,
                                      mean_typ=mixing, weight_typ=self.weight_type,
                                      sign=sign)
-        tf.scalar_summary('G_loss', self.G_loss)
 
         # Define minimax objectives for generator
         self.V_G = mix_prediction(self.V_D, self.l,
                                   mean_typ=mixing, weight_typ=self.weight_type,
                                   sign=sign)
+
+    def add_summaries(self):
+        self.min_Df = tf.reduce_min(self.Df)
+        self.max_Df = tf.reduce_max(self.Df)
+        self.min_Dr = tf.reduce_min(self.Dr)
+        self.max_Dr = tf.reduce_max(self.Dr)
+        tf.scalar_summary('D_0_z', tf.reduce_mean(self.Df[0]))
+        tf.scalar_summary('min_D_z', self.min_Df)
+        tf.scalar_summary('max_D_z', self.max_Df)
+        tf.scalar_summary('D_0_x', tf.reduce_mean(self.Dr[0]))
+        tf.scalar_summary('min_D_x', self.min_Dr)
+        tf.scalar_summary('max_D_x', self.max_Dr)
+        tf.histogram_summary('D_f', self.Df)
+        tf.histogram_summary('D_r', self.Dr)
+        for ind in range(len(self.D_losses)):
+            tf.scalar_summary('D_%d_Loss' % ind, self.D_losses[ind])
+        tf.scalar_summary('G_loss', self.G_loss)
+        for ind in range(len(self.V_D)):
+            tf.scalar_summary('V_D_%d' % ind, self.V_D[ind])
+        tf.scalar_summary('V_G', self.V_G)
+
 
 
 
