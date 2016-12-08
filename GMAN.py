@@ -20,8 +20,8 @@ class GMAN:
         self.batch_size = batch_size
         self.N = num_disc
         self.base_prob = 0.4
-        self.delta_p = (0.99 - self.base_prob) / self.N
-        self.h_adv = num_hidden + 20
+        self.delta_p = (0.5 - self.base_prob) / self.N
+        self.h_adv = num_hidden
         self.name = name
         self.weight_type = weight_type
         self.channel_size = self.batch_size * self.N
@@ -30,7 +30,7 @@ class GMAN:
         self.aux_vars = []
         self.aux_vars_new = []
 
-        with tf.name_scope(self.name) and tf.variable_scope(self.name):
+        with tf.variable_scope(self.name):
             # Define latent distribution
             self.z = tf.random_uniform(shape=[self.channel_size, 1, 1, self.num_latent],
                                        minval=-1., maxval=1., name='z')
@@ -346,7 +346,7 @@ def main(_):
 
             train_writer = tf.train.SummaryWriter(path+'/',sess.graph)
             sum = tf.merge_all_summaries()
-            init = tf.initialize_all_variables()
+            init = tf.global_variables_initializer()
             sess.run(init)
 
             try:
