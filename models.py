@@ -1,4 +1,5 @@
-from helper import batch_norm, leaky_relu, dense, conv2d, conv2d_transpose
+import tensorflow as tf
+from helper import batch_norm, leaky_relu, dense, conv2d
 
 
 def generator(gan):
