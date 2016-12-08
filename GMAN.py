@@ -160,11 +160,16 @@ class GMAN:
         # logits --> probabilities
         self.Df = [sigmoid(logit) for logit in self.Df_logits]
         self.Dr = [sigmoid(logit) for logit in self.Dr_logits]
+        self.min_Df = tf.reduce_min(self.Df)
+        self.max_Df = tf.reduce_max(self.Df)
         self.min_Dr = tf.reduce_min(self.Dr)
+        self.max_Dr = tf.reduce_max(self.Dr)
         tf.scalar_summary('D_0_z', tf.reduce_mean(self.Df[0]))
-        tf.scalar_summary('min_D_z', tf.reduce_min(self.Df))
+        tf.scalar_summary('min_D_z', self.min_Df)
+        tf.scalar_summary('max_D_z', self.max_Df)
         tf.scalar_summary('D_0_x', tf.reduce_mean(self.Dr[0]))
         tf.scalar_summary('min_D_x', self.min_Dr)
+        tf.scalar_summary('max_D_x', self.max_Dr)
 
         # Define discriminator losses
         if obj == 'original':
@@ -224,11 +229,16 @@ class GMAN:
         # logits --> probabilities
         self.Df = [sigmoid(logit) for logit in self.Df_logits]
         self.Dr = [sigmoid(logit) for logit in self.Dr_logits]
+        self.min_Df = tf.reduce_min(self.Df)
+        self.max_Df = tf.reduce_max(self.Df)
         self.min_Dr = tf.reduce_min(self.Dr)
+        self.max_Dr = tf.reduce_max(self.Dr)
         tf.scalar_summary('D_0_z', tf.reduce_mean(self.Df[0]))
-        tf.scalar_summary('min_D_z', tf.reduce_min(self.Df))
+        tf.scalar_summary('min_D_z', self.min_Df)
+        tf.scalar_summary('max_D_z', self.max_Df)
         tf.scalar_summary('D_0_x', tf.reduce_mean(self.Dr[0]))
         tf.scalar_summary('min_D_x', self.min_Dr)
+        tf.scalar_summary('max_D_x', self.max_Dr)
 
         # Define discriminator losses
         # if obj == 'original':
@@ -306,8 +316,6 @@ def main(_):
     iterations = FLAGS.iterations
     lam = FLAGS.lam
     boosting_variant = FLAGS.boosting
-    print('boosting_variant')
-    print(boosting_variant is None)
 
     # Plot random images from dataset
     c = 'Greys_r'
@@ -350,11 +358,14 @@ def main(_):
                     G_loss = []
                     V = []
                     min_Dr = []
+                    max_Dr = []
+                    min_Df = []
+                    max_Df = []
 
                     for k in range(iterations):
                         feed_dict[gman.real] = data.next_batch(batch_size * gman.N)[0]
 
-                        summary, _G_loss, _V, _min_Dr = sess.run([sum, gman.G_loss, gman.V_G, gman.min_Dr],
+                        summary, _G_loss, _V, _min_Df, _max_Df, _min_Dr, _max_Dr = sess.run([sum, gman.G_loss, gman.V_G, gman.min_Df, gman.max_Df, gman.min_Dr, gman.max_Dr],
                                                                  feed_dict=feed_dict)
                         train_writer.add_summary(summary, j * iterations + k)
 
@@ -368,15 +379,21 @@ def main(_):
                         G_loss.append(_G_loss)
                         D_losses.append(_D_losses)
                         V.append(_V)
+                        min_Df.append(_min_Df)
+                        max_Df.append(_max_Df)
                         min_Dr.append(_min_Dr)
+                        max_Dr.append(_max_Dr)
 
                         if (k + 1) % 10 == 0:
-                            print('epoch %d, minibatch: %d, D_Loss: %0.4f, G_Loss: %0.4f, V: %0.4f, min_Dr: %0.4f'
-                                  % (j, k, np.mean(D_losses), np.mean(G_loss), np.mean(V), min(min_Dr)))
+                            print('epoch %d, minibatch: %d, D_Loss: %0.4f, G_Loss: %0.4f, V: %0.4f, Df: [%0.4f,%0.4f], Dr: [%0.4f,%0.4f]'
+                                  % (j, k, np.mean(D_losses), np.mean(G_loss), np.mean(V), min(min_Df), max(max_Df), min(min_Dr), max(max_Dr)))
                             G_loss = []
                             D_losses = []
                             V = []
+                            min_Df = []
+                            max_Df = []
                             min_Dr = []
+                            max_Dr = []
 
                     images = sess.run(gman.fake, feed_dict=feed_dict)[:batch_size]
                     plot_fakes(images,  num_c, batch_size, c, filename=path+'/%d.png' % j)
