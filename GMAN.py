@@ -113,7 +113,6 @@ class GMAN:
             self.all_opt.append(self.G_optim)
 
     def get_D_boosted_losses(self, boosting_variant, obj='original'):
-
         # Define auxiliary placeholds
         t = tf.placeholder(tf.float32)
         alpha = tf.placeholder(tf.float32, shape=[self.N])

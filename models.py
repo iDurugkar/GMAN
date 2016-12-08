@@ -76,7 +76,7 @@ def generator(gan):
     return gen_image
 
 
-def discriminator(gan, inp, num, keep_prob, reuse=False, gpu_num=0):
+def discriminator_old(gan, inp, num, keep_prob, reuse=False, gpu_num=0):
     hidden_units = gan.h_adv
     print(hidden_units)
     print(keep_prob)
@@ -114,6 +114,37 @@ def discriminator(gan, inp, num, keep_prob, reuse=False, gpu_num=0):
                     flattened = tf.reshape(h2, [gan.batch_size, num_units])
                     flattened = tf.nn.dropout(flattened, keep_prob=0.9)
 
+            with tf.name_scope('prediction') and tf.variable_scope('prediction'):
+                pred = dense(flattened, [num_units, 1], [1])
+    return pred
+
+def discriminator(gan, inp, num, keep_prob, reuse=False):
+    gpu_num = 0
+    hidden_units = gan.h_adv
+    print(hidden_units)
+    print(keep_prob)
+    with tf.device('/gpu:%d' % gpu_num):
+        with tf.name_scope('discriminator_%d' % num) and tf.variable_scope('discriminator_%d' % num):
+            if reuse:
+                tf.get_variable_scope().reuse_variables()
+            with tf.name_scope('conv0') and tf.variable_scope('conv0'):
+                h0 = conv2d(inp, [3, 3, gan.num_channels, hidden_units / 4], [hidden_units / 4],
+                            stride=2, name='h0')
+                h0 = leaky_relu(0.2, h0)
+                h0 = tf.nn.dropout(h0, keep_prob)
+            with tf.name_scope('conv1') and tf.variable_scope('conv1'):
+                h1 = conv2d(h0, [3, 3, hidden_units / 4, hidden_units / 2], [hidden_units / 2],
+                            stride=2, name='h0')
+                h1 = leaky_relu(0.2, h1)
+                h1 = tf.nn.dropout(h1, keep_prob)
+            with tf.name_scope('conv2') and tf.variable_scope('conv2'):
+                h2 = conv2d(h1, [3, 3, hidden_units / 2, hidden_units], [hidden_units],
+                            stride=1, name='h0')
+                h2 = leaky_relu(0.2, h2)
+            with tf.name_scope('reshape') and tf.variable_scope('reshape'):
+                shape = h2.get_shape().as_list()
+                num_units = shape[1] * shape[2] * shape[3]
+                flattened = tf.reshape(h2, [gan.batch_size, num_units])
             with tf.name_scope('prediction') and tf.variable_scope('prediction'):
                 pred = dense(flattened, [num_units, 1], [1])
     return pred
