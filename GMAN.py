@@ -345,7 +345,7 @@ def main(_):
                 feed_dict.update(aux_vars_init)
 
             train_writer = tf.train.SummaryWriter(path+'/',sess.graph)
-            sum = tf.merge_all_summaries()
+            summary = tf.merge_all_summaries()
             init = tf.initialize_all_variables()
             sess.run(init)
 
@@ -365,9 +365,9 @@ def main(_):
                     for k in range(iterations):
                         feed_dict[gman.real] = data.next_batch(batch_size * gman.N)[0]
 
-                        summary, _G_loss, _V, _min_Df, _max_Df, _min_Dr, _max_Dr = sess.run([sum, gman.G_loss, gman.V_G, gman.min_Df, gman.max_Df, gman.min_Dr, gman.max_Dr],
+                        _summary, _G_loss, _V, _min_Df, _max_Df, _min_Dr, _max_Dr = sess.run([summary, gman.G_loss, gman.V_G, gman.min_Df, gman.max_Df, gman.min_Dr, gman.max_Dr],
                                                                  feed_dict=feed_dict)
-                        train_writer.add_summary(summary, j * iterations + k)
+                        train_writer.add_summary(_summary, j * iterations + k)
 
                         _D_losses = sess.run(gman.D_losses, feed_dict=feed_dict)
 
