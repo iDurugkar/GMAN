@@ -1,0 +1,7 @@
+.idea/*
+*.out
+*.png
+*.ckpt*
+checkpoint
+*.pyc
+Data/*

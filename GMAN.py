@@ -2,9 +2,11 @@ import os
 import cifar
 import celeb
 import gen_data
-# from helper import *
+import tensorflow as tf
+import numpy as np
+from helper import mix_prediction, sigmoid, get_mnist_data
 import matplotlib.pyplot as plt
-from models import *
+from models import generator, discriminator
 from time import time
 
 
@@ -144,8 +146,8 @@ class GMAN:
         wr_split = tf.split(split_dim=1, num_split=self.N, value=wr)
 
         # Define v update -- only needed if training generator with expectation of booster prediction
-        wrong_f = tf.sigmoid(Df_weighted)
-        wrong_r = tf.sigmoid(-Dr_weighted)
+        wrong_f = sigmoid(Df_weighted)
+        wrong_r = sigmoid(-Dr_weighted)
         wrong = tf.concat(concat_dim=0, values=[wrong_f,wrong_r])
         v_new = tf.reduce_mean(v*tf.exp(wrong),reduction_indices=0)
 
