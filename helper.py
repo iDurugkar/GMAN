@@ -182,7 +182,7 @@ def mix_prediction(losses, lam=0., mean_typ='arithmetic', weight_typ='normal', s
     # losses is shape (# of discriminators x batch_size)
     # output is scalar
 
-    assert lam >= 0.
+    tf.assert_non_negative(lam)
     assert mean_typ in ['arithmetic','geometric','harmonic']
     assert weight_typ in ['normal','log']
     assert sign == 1. or sign == -1.
