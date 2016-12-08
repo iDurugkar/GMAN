@@ -1,7 +1,5 @@
 import os
-import cifar
-import celeb
-import gen_data
+from dataset import Cifar, Celeb, GenericImages
 import tensorflow as tf
 import numpy as np
 from helper import mix_prediction, sigmoid, get_mnist_data
@@ -288,12 +286,15 @@ def main(_):
         print(data.images.shape)
         num_c = 1
     elif FLAGS.dataset == 'celebA':
+        celeb = Celeb()
         data = celeb.load_data()
         num_c = 3
     elif FLAGS.dataset == 'cifar':
+        cifar = Cifar()
         data = cifar.load_data()
         num_c = 3
     else:
+        gen_data = GenericImages()
         data = gen_data.load_data(FLAGS.dataset)
         num_c = data.images.shape[-1]
         print(data.images.shape)
