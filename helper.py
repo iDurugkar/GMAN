@@ -197,3 +197,44 @@ def mix_prediction(losses, lam=0., mean_typ='arithmetic', weight_typ='normal', s
         loss = mn + tf.inv(weighted_arithmetic(weights, inv_losses))
     
     return loss
+
+def GMAM_latex(u,v,variants,variant_header='Variant',frac_uv=False):
+    '''
+    Prints latex source to screen for easy copy-paste of GMAM tables.
+    u is matrix of means
+    v is matrix of stdevs with same shape as u
+    variants is list of names of GMAM variants
+    variant_header is name of variant header
+    frac_uv prints \frac{u}{+/-v} if True, else u +/- v
+    '''
+    N = len(variants)
+    scores = np.sum(u,axis=1)
+    tabular = '\\begin{table}[ht]\n\centering\\begin{tabular}{'+'c|'*(N+2)+'c}\n'
+    header = '\t & Score & '+variant_header+' & '+' & '.join([h for h in variants])+' \\\ \hline\n'
+    left_boundary = '\t\parbox[t]{2mm}{\multirow{'+str(N)+'}{*}{\\rotatebox[origin=c]{90}{Better$\\rightarrow$}}}'
+    tabular += header + left_boundary
+    for r in range(N):
+        row = '\t & $\mathbf{'+'{:1.3f}'.format(scores[r])+'}$ & '
+        row += variants[r]
+        for c in range(N):
+            if r == c:
+                row += ' & -'
+            else:
+                uc,vc = u[r,c], v[r,c]
+                uc = '{:1.3f}'.format(uc)
+                vc = '\pm {:1.3f}'.format(vc)
+                if frac_uv:
+                    row += ' & $\\frac{'+uc+'}{'+vc+'}$'
+                else:
+                    row += ' & $'+uc+' '+vc+'$'
+        row += ' \\\ \n'
+        tabular += row
+    tabular += '\end{tabular}\n'
+    tabular += '\caption{Pairwise GMAM metric means with \emph{stdev} for select models on ****. For each column, a positive GMAM indicates better performance relative to the row opponent; negative implies worse. Scores are obtained by summing each variant''s column.}\n'
+    tabular += '\label{table:****_gmam}\n'
+    tabular += '\end{table}'
+    print(tabular)
+
+
+
+
