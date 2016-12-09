@@ -154,12 +154,15 @@ def _download_cifar(out_dir):
     #     out_name = 'test_lmdb.zip'
     # else:
     #     out_name = '{category}_{set_name}_lmdb.zip'.format(**locals())
+
     file_path = os.path.join(out_dir, 'cifar-10-python.tar.gz')
-    cmd = ['wget', url, '-P', out_dir]
-    print('Downloading CIFAR')
-    subprocess.call(cmd)
-    tfile = tarfile.TarFile(file_path)
-    tfile.extractall(path=out_dir)
+    if not os.path.exists(file_path):
+        cmd = ['wget', url, '-P', out_dir]
+        print('Downloading CIFAR')
+        subprocess.call(cmd)
+    # tfile = tarfile.TarFile(file_path)
+    with tarfile.open(name=file_path, mode='r:gz') as tfile:
+        tfile.extractall(path=out_dir)
 
 
 def download_cifar(dirpath):

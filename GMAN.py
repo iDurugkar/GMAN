@@ -281,7 +281,8 @@ def main(_):
 
     if FLAGS.dataset == 'mnist':
         data = get_mnist_data().train
-        data._images = np.pad((data._images - 127.5) / 128., ((0, 0), (2, 2), (2, 2), (0, 0)), 'minimum')
+        print('Max: %f, Min: %f' % (np.max(data.images), np.min(data.images)))
+        data._images = np.pad((data._images*2) - 1., ((0, 0), (2, 2), (2, 2), (0, 0)), 'minimum')
         print(data.images.shape)
         num_c = 1
     elif FLAGS.dataset == 'celebA':
@@ -336,7 +337,7 @@ def main(_):
 
             train_writer = tf.train.SummaryWriter(path+'/',sess.graph)
             summary = tf.merge_all_summaries()
-            init = tf.global_variables_initializer()
+            init = tf.initialize_all_variables()
             sess.run(init)
 
             try:
