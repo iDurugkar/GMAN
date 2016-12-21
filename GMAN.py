@@ -19,8 +19,8 @@ class GMAN:
         self.num_hidden = num_hidden
         self.batch_size = batch_size
         self.N = num_disc
-        self.base_prob = 0.5
-        self.delta_p = (0.5 - self.base_prob) / self.N
+        self.base_prob = 0.4
+        self.delta_p = (0.6 - self.base_prob) / self.N
         self.h_adv = num_hidden
         self.name = name
         self.weight_type = weight_type
