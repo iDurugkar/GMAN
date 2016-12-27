@@ -6,13 +6,18 @@ import os
 from GMAN import GMAN
 
 
-def initialize_net_in_different_graph(constructor, path, num_latent, image_size, batch_size,
+def initialize_net_in_different_graph(path, num_latent, image_size, batch_size,
                                       num_disc, num_c, num_hidden=256,
-                                      mixing='arithmetic', config=None):
+                                      mixing='arithmetic', weighting='normal',
+                                      objective='original', boosting_variant=None,
+                                      self_learnt=False, name='GMAN', config=None):
     graph = tf.Graph()
     with graph.as_default():
-        gan = constructor(num_latent, image_size, batch_size, num_disc, num_channels=num_c,
-                          num_hidden=num_hidden, mixing=mixing)
+        gan = GMAN(num_latent, image_size, batch_size, num_disc,
+                   num_channels=num_c, num_hidden=num_hidden,
+                   mixing=mixing, weight_type=weighting,
+                   objective=objective, boosting_variant=boosting_variant,
+                   self_challenged=self_learnt, name=name)
         saver = tf.train.Saver()
     sess = tf.Session(graph=graph, config=config)
     saver.restore(sess, path)
@@ -23,6 +28,8 @@ def initialize_net_in_different_graph(constructor, path, num_latent, image_size,
 def main(_):
     num_latent = FLAGS.latent
     image_size = 32
+    num_hidden = 256
+    num_iterations = 5
     batch_size = FLAGS.batch_size
     config = tf.ConfigProto(allow_soft_placement=True)
     config.gpu_options.allow_growth = True
@@ -41,7 +48,8 @@ def main(_):
         data = cifar.load_data()
         num_c = 3
     print('Max: %f, Min: %f' % (np.max(data.images), np.min(data.images)))
-    order = ['modified', 'self']  # , 'arm_0', 'arm_1']  # , 'harm_0', 'harm_1']  # , 'boost' 'original', 'max',
+    order = ['modified', 'original', '5_0', '5_1', '2_0', '2_1']  # 'self', 'arm_0', 'arm_1']  # , 'harm_0', 'harm_1']
+    #  , 'boost' 'original', 'max',
     # order = ['baseline', 'arm_0', 'arm_1', 'harm_0']
     comparisons = {}
     for ind1 in range(len(order)):
@@ -49,66 +57,53 @@ def main(_):
             name = order[ind1] + '_' + order[ind2]
             comparisons[name] = []
 
-    num_disc = 2
+    # Assuming we are comparing 2 and 5 discriminators
+    # num_disc = 2
     # iteration = 4
+
+    # path, num_latent, image_size, batch_size,
+    # num_disc, num_c, num_hidden = 256,
+    # mixing = 'arithmetic', weighting = 'normal',
+    # objective = 'original', boosting_variant = None,
+    # self_learnt = False, name = 'GMAN', config = None
     for iteration in range(1, 3):
         models = {}
-        # path = '%s/1_original_%d/model.ckpt' % (FLAGS.path, iteration)
-        # print(path)
-        # models['original'] = initialize_net_in_different_graph(modGAN, path,num_latent, image_size, batch_size,
-        #                                                        1, num_c, config=config)
-
-        path = '%s/1_modified_%d/model.ckpt' % (FLAGS.path, iteration)
-        print(path)
-        models['modified'] = initialize_net_in_different_graph(modGAN, path, num_latent, image_size, batch_size,
-                                                               1, num_c, config=config)
-
-        # path = '%s/%d_max_%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
-        # print(path)
-        # models['max'] = initialize_net_in_different_graph(maxGAN, path, num_latent, image_size, batch_size,
-        #                                                   num_disc, num_c, config=config)
-
-        path = '%s/%d_self_1/model.ckpt' % (FLAGS.path, num_disc)
-        print(path)
-        models['self'] = initialize_net_in_different_graph(selfGAN, path, num_latent, image_size, batch_size,
-                                                           num_disc, num_c, config=config)
-
-        # path = '%s/%d_arithmetic_0._%d/model.ckpt' % (FLAGS.path,num_disc,  iteration)
-        # print(path)
-        # models['arm_0'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
-        #                                                     num_disc, num_c, config=config, mixing='arithmetic')
-        #
-        # path = '%s/%d_arithmetic_1._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
-        # print(path)
-        # models['arm_1'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
-        #                                                     num_disc, num_c, config=config, mixing='arithmetic')
-
-        # path = '%s/%d_harmonic_0._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
-        # print(path)
-        # models['harm_0'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
-        #                                                      num_disc, num_c, config=config, mixing='harmonic')
-        #
-        # path = '%s/%d_harmonic_1._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
-        # print(path)
-        # models['harm_1'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
-        #                                                      num_disc, num_c, config=config, mixing='harmonic')
-
-        # path = '%s/%d_partialboost_0._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
-        # print(path)
-        # models['boost'] = initialize_net_in_different_graph(boostGAN, path, num_latent, image_size, batch_size,
-        #                                                     num_disc, num_c, config=config)
-
-        # baseline = modGAN(num_latent, image_size, batch_size, 1, num_channels=num_c, num_hidden=128)
-        # max2 = maxGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128)
-        # kgan = selfGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128)
-        # agan0 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='arithmetic')
-        # agan1 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='arithmetic')
-        # hgan0 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='harmonic')
-        # hgan1 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='harmonic')
-        # boost = boostGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128)
+        for model in order:
+            if model == 'modified':
+                path = '%s/1_modified_%d_%d/model.ckpt' % (FLAGS.path, num_hidden, iteration)
+                print(path)
+                num_disc = 1
+                lam = 1.0
+                objective = 'modified'
+                name = model
+                self_learnt = False
+            elif model == 'original':
+                path = '%s/1_original_%d_%d/model.ckpt' % (FLAGS.path, num_hidden, iteration)
+                print(path)
+                num_disc = 1
+                lam = 1.0
+                objective = 'original'
+                name = model
+                self_learnt = False
+            else:
+                num_disc, lam = model.split('_')
+                num_disc = int(num_disc)
+                if lam is not 'self':
+                    lam = float(lam)
+                    self_learnt = False
+                else:
+                    self_learnt = True
+                path = '%s/%s_%d_%d/model.ckpt' % (FLAGS.path, model, num_hidden, iteration)
+                print(path)
+                num_disc = 1
+                objective = 'original'
+                name = model
+            models[model] = initialize_net_in_different_graph(path, num_latent, image_size, batch_size, num_disc,
+                                                              num_c, num_hidden=num_hidden, objective=objective,
+                                                              self_learnt=self_learnt, name=name)
 
         original_scores = {}
-        images = [data.next_batch(batch_size * num_disc)[0] for i in range(5)]
+        images = [data.next_batch(batch_size * 5)[0] for _ in range(num_iterations)]
         for model in order:
             _, sess, gan = models[model]
             lam = 0.
@@ -117,9 +112,10 @@ def main(_):
             if model == 'original' or model == 'modified' or model == 'boost':
                 num_im = batch_size
             else:
+                num_disc = int(model.split('_')[0])
                 num_im = batch_size * num_disc
             score = [sess.run(gan.eval_loss, feed_dict={gan.reals: images[i][:num_im], gan.training: True, gan.l: lam})
-                     for i in range(5)]
+                     for i in range(num_iterations)]
             original_scores[model] = score
             print('calculated score for %s' % model)
         print('Calculated the original scores')
@@ -135,6 +131,7 @@ def main(_):
             if m1 == 'original' or m1 == 'modified' or m1 == 'boost':
                 num_im1 = batch_size
             else:
+                num_disc = int(m1.split('_')[0])
                 num_im1 = batch_size * num_disc
             if m1 == 'self':
                 gen1_weights = gen1_weights[:-1]
@@ -147,6 +144,7 @@ def main(_):
                 if m2 == 'original' or m2 == 'modified' or m2 == 'boost':
                     num_im2 = batch_size
                 else:
+                    num_disc = int(m1.split('_')[0])
                     num_im2 = batch_size * num_disc
                 graph2, sess2, gan2 = models[m2]
                 gen2_weights = sess2.run(gan2.gen_vars)
@@ -167,7 +165,7 @@ def main(_):
                     for assignment in assign_weights:
                         sess2.run(assignment)
                 print('Swapped out weights for generator 2')
-                for i in range(5):
+                for i in range(num_iterations):
                     s12 = sess1.run(gan1.eval_loss, feed_dict={gan1.reals: images[i][:num_im1], gan1.training: True, gan1.l: lam1})
                     ratio1 = s12 / original_scores[order[ind1]][i]
                     s21 = sess2.run(gan2.eval_loss, feed_dict={gan2.reals: images[i][:num_im2], gan2.training: True, gan2.l: lam2})
