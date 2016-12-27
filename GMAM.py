@@ -1,0 +1,300 @@
+# import tensorflow as tf
+# import numpy as np
+from helper import *
+from dataset import Celeb, Cifar, GenericImages
+import os
+from GMAN import GMAN
+
+
+def initialize_net_in_different_graph(constructor, path, num_latent, image_size, batch_size,
+                                      num_disc, num_c, num_hidden=256,
+                                      mixing='arithmetic', config=None):
+    graph = tf.Graph()
+    with graph.as_default():
+        gan = constructor(num_latent, image_size, batch_size, num_disc, num_channels=num_c,
+                          num_hidden=num_hidden, mixing=mixing)
+        saver = tf.train.Saver()
+    sess = tf.Session(graph=graph, config=config)
+    saver.restore(sess, path)
+    # tf.placeholder()
+    return graph, sess, gan
+
+
+def main(_):
+    num_latent = FLAGS.latent
+    image_size = 32
+    batch_size = FLAGS.batch_size
+    config = tf.ConfigProto(allow_soft_placement=True)
+    config.gpu_options.allow_growth = True
+
+    if FLAGS.dataset == 'mnist':
+        data = get_mnist_data().train
+        data._images = np.pad((data._images - 127.5) / 128., ((0, 0), (2, 2), (2, 2), (0, 0)), 'minimum')
+        print(data.images.shape)
+        num_c = 1
+    elif FLAGS.dataset == 'celebA':
+        celeb = Celeb()
+        data = celeb.load_data()
+        num_c = 3
+    else:
+        cifar = Cifar()
+        data = cifar.load_data()
+        num_c = 3
+    print('Max: %f, Min: %f' % (np.max(data.images), np.min(data.images)))
+    order = ['modified', 'self']  # , 'arm_0', 'arm_1']  # , 'harm_0', 'harm_1']  # , 'boost' 'original', 'max',
+    # order = ['baseline', 'arm_0', 'arm_1', 'harm_0']
+    comparisons = {}
+    for ind1 in range(len(order)):
+        for ind2 in range( len(order)):
+            name = order[ind1] + '_' + order[ind2]
+            comparisons[name] = []
+
+    num_disc = 2
+    # iteration = 4
+    for iteration in range(1, 3):
+        models = {}
+        # path = '%s/1_original_%d/model.ckpt' % (FLAGS.path, iteration)
+        # print(path)
+        # models['original'] = initialize_net_in_different_graph(modGAN, path,num_latent, image_size, batch_size,
+        #                                                        1, num_c, config=config)
+
+        path = '%s/1_modified_%d/model.ckpt' % (FLAGS.path, iteration)
+        print(path)
+        models['modified'] = initialize_net_in_different_graph(modGAN, path, num_latent, image_size, batch_size,
+                                                               1, num_c, config=config)
+
+        # path = '%s/%d_max_%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
+        # print(path)
+        # models['max'] = initialize_net_in_different_graph(maxGAN, path, num_latent, image_size, batch_size,
+        #                                                   num_disc, num_c, config=config)
+
+        path = '%s/%d_self_1/model.ckpt' % (FLAGS.path, num_disc)
+        print(path)
+        models['self'] = initialize_net_in_different_graph(selfGAN, path, num_latent, image_size, batch_size,
+                                                           num_disc, num_c, config=config)
+
+        # path = '%s/%d_arithmetic_0._%d/model.ckpt' % (FLAGS.path,num_disc,  iteration)
+        # print(path)
+        # models['arm_0'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
+        #                                                     num_disc, num_c, config=config, mixing='arithmetic')
+        #
+        # path = '%s/%d_arithmetic_1._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
+        # print(path)
+        # models['arm_1'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
+        #                                                     num_disc, num_c, config=config, mixing='arithmetic')
+
+        # path = '%s/%d_harmonic_0._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
+        # print(path)
+        # models['harm_0'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
+        #                                                      num_disc, num_c, config=config, mixing='harmonic')
+        #
+        # path = '%s/%d_harmonic_1._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
+        # print(path)
+        # models['harm_1'] = initialize_net_in_different_graph(tGAN, path, num_latent, image_size, batch_size,
+        #                                                      num_disc, num_c, config=config, mixing='harmonic')
+
+        # path = '%s/%d_partialboost_0._%d/model.ckpt' % (FLAGS.path, num_disc, iteration)
+        # print(path)
+        # models['boost'] = initialize_net_in_different_graph(boostGAN, path, num_latent, image_size, batch_size,
+        #                                                     num_disc, num_c, config=config)
+
+        # baseline = modGAN(num_latent, image_size, batch_size, 1, num_channels=num_c, num_hidden=128)
+        # max2 = maxGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128)
+        # kgan = selfGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128)
+        # agan0 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='arithmetic')
+        # agan1 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='arithmetic')
+        # hgan0 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='harmonic')
+        # hgan1 = tGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128, mixing='harmonic')
+        # boost = boostGAN(num_latent, image_size, batch_size, 2, num_channels=num_c, num_hidden=128)
+
+        original_scores = {}
+        images = [data.next_batch(batch_size * num_disc)[0] for i in range(5)]
+        for model in order:
+            _, sess, gan = models[model]
+            lam = 0.
+            if model.endswith('1'):
+                lam = 1.
+            if model == 'original' or model == 'modified' or model == 'boost':
+                num_im = batch_size
+            else:
+                num_im = batch_size * num_disc
+            score = [sess.run(gan.eval_loss, feed_dict={gan.reals: images[i][:num_im], gan.training: True, gan.l: lam})
+                     for i in range(5)]
+            original_scores[model] = score
+            print('calculated score for %s' % model)
+        print('Calculated the original scores')
+
+        # Exchange weights and run
+        for ind1 in range(len(order)):
+            m1 = order[ind1]
+            graph1, sess1, gan1 = models[m1]
+            gen1_weights = sess1.run(gan1.gen_vars)
+            lam1 = 0.
+            if m1.endswith('1'):
+                lam1 = 1.
+            if m1 == 'original' or m1 == 'modified' or m1 == 'boost':
+                num_im1 = batch_size
+            else:
+                num_im1 = batch_size * num_disc
+            if m1 == 'self':
+                gen1_weights = gen1_weights[:-1]
+            print(len(gen1_weights))
+            for ind2 in range(len(order)):
+                m2 = order[ind2]
+                lam2 = 0.
+                if m2.endswith('1'):
+                    lam2 = 1.
+                if m2 == 'original' or m2 == 'modified' or m2 == 'boost':
+                    num_im2 = batch_size
+                else:
+                    num_im2 = batch_size * num_disc
+                graph2, sess2, gan2 = models[m2]
+                gen2_weights = sess2.run(gan2.gen_vars)
+                if m2 == 'self':
+                    gen2_weights = gen2_weights[:-1]
+                print(len(gen2_weights))
+                with graph1.as_default():
+                    assign_weights = []
+                    for j in range(len(gen1_weights)):
+                        assign_weights.append(tf.assign(gan1.gen_vars[j], gen2_weights[j]))
+                    for assignment in assign_weights:
+                        sess1.run(assignment)
+                print('Swapped out weights for generator 1')
+                with graph2.as_default():
+                    assign_weights = []
+                    for j in range(len(gen2_weights)):
+                        assign_weights.append(tf.assign(gan2.gen_vars[j], gen1_weights[j]))
+                    for assignment in assign_weights:
+                        sess2.run(assignment)
+                print('Swapped out weights for generator 2')
+                for i in range(5):
+                    s12 = sess1.run(gan1.eval_loss, feed_dict={gan1.reals: images[i][:num_im1], gan1.training: True, gan1.l: lam1})
+                    ratio1 = s12 / original_scores[order[ind1]][i]
+                    s21 = sess2.run(gan2.eval_loss, feed_dict={gan2.reals: images[i][:num_im2], gan2.training: True, gan2.l: lam2})
+                    ratio2 = s21 / original_scores[order[ind2]][i]
+                    # score = ratio1 / ratio2
+                    # score = np.log(s12) - np.log(original_scores[order[ind1]][i]) - np.log(s21) + np.log(original_scores[order[ind2]][i])
+                    score = np.log(ratio1) - np.log(ratio2)
+                    comparisons[m1 + '_' + m2].append(score)
+                print('Comparison done for: %s' % m1 + '_' + m2)
+                with graph2.as_default():
+                    assign_weights = []
+                    for j in range(len(gen2_weights)):
+                        assign_weights.append(tf.assign(gan2.gen_vars[j], gen2_weights[j]))
+                    for assignment in assign_weights:
+                        sess2.run(assignment)
+                print('Swapped out weights for generator 2')
+            with graph1.as_default():
+                assign_weights = []
+                for j in range(len(gen1_weights)):
+                    assign_weights.append(tf.assign(gan1.gen_vars[j], gen1_weights[j]))
+                for assignment in assign_weights:
+                    sess1.run(assignment)
+            print('Reset weights for generator 1')
+    print('Scores computed')
+    print(comparisons)
+    for (model, scores) in comparisons.items():
+        mu = np.mean(comparisons[model])
+        sigma = np.std(comparisons[model])
+        print('%s: mu = %f sigma = %f' % (model, mu, sigma))
+
+    #
+    #
+    # images = data.next_batch(batch_size * num_disc)[0]
+    # n_disc1 = 1
+    # # f_name = 'mnist_%d_%s_%s' % (i, t, l)
+    # f_name = 'mnist_1_256_drop_0_7'  # % i
+    # print(f_name)
+    # if not os.path.isfile('%s/%s/model.ckpt' % (FLAGS.dataset, f_name)):
+    #     print('Model does not exist. Next')
+    #     exit()
+    #     # continue
+    # # try:
+    # graph1 = tf.Graph()
+    # with graph1.as_default():
+    #     gan1 = MultiDescGAN(num_latent, image_size, batch_size, n_disc1, num_channels=num_c,
+    #                         num_hidden=128, mixing='arithmetic')
+    #
+    #     saver1 = tf.train.Saver()
+    # # init1 = tf.initialize_variables(gan1.total_dis_vars + gan1.gen_vars)
+    # sess1 = tf.Session(graph=graph1, config=config)
+    # # sess1.run(init1)
+    # saver1.restore(sess1, "%s/%s/model.ckpt" % (FLAGS.dataset, f_name))
+    # # print('Managed to load first graph')
+    #
+    # # except Exception:
+    # #     print('Could not load it. Continuing on')
+    # #     exit()
+    # #     # continue
+    #
+    # graph2 = tf.Graph()
+    # # n_disc1 = 1
+    # with graph2.as_default():
+    #     gan2 = MultiDescGAN(num_latent, image_size, batch_size, 1, num_channels=num_c,
+    #                         num_hidden=128, mixing='arithmetic')
+    #     saver2 = tf.train.Saver()
+    # # init2 = tf.initialize_variables(gan2.total_dis_vars + gan2.gen_vars)
+    # sess2 = tf.Session(graph=graph2, config=config)
+    # # sess2.run(init2)
+    # saver2.restore(sess2, "mnist/mnist_1_256/model.ckpt")
+    # # print('Managed to load the second one')
+    #
+    # # Compare performance on real images
+    # # pred_1 = np.mean(sess1.run(gan1.losses, feed_dict={gan1.reals: images, gan1.training: True, gan1.l:0.}))
+    # # gen_loss1 = sess1.run(gan1.gen_loss, feed_dict={gan1.training: True, gan1.l: 0.})
+    # # # print('L(D1(G1)): %0.3f' % pred_1)
+    # # pred_2 = np.mean(sess2.run(gan2.losses, feed_dict={gan2.reals: images, gan2.training: True, gan2.l: 0.}))
+    # # gen_loss2 = sess2.run(gan2.gen_loss, feed_dict={gan2.training: True, gan2.l: 0.})
+    # # # print('L(D2(G2)): %0.3f' % pred_2)
+    # # ratio = pred_1 / pred_2
+    # # print('Desc ratio: %0.4f' % ratio)
+    #
+    # # Pre generator swap
+    # s11 = sess1.run(gan1.mixed_v, feed_dict={gan1.reals: images, gan1.training: True, gan1.l: 0.0})
+    # s22 = sess2.run(gan2.mixed_v, feed_dict={gan2.reals: images[:100], gan2.training: True, gan2.l: 0.})
+    # print('s11: %0.3f' % s11)
+    # print('s22: %0.3f' % s22)
+    #
+    # # Swap generators:
+    # gen1_weights = sess1.run(gan1.gen_vars)
+    # gen2_weights = sess2.run(gan2.gen_vars)
+    # with graph1.as_default():
+    #     assign_weights = []
+    #     for j in range(len(gen1_weights)):
+    #         assign_weights.append(tf.assign(gan1.gen_vars[j], gen2_weights[j]))
+    #     for assignment in assign_weights:
+    #         sess1.run(assignment)
+    # # print('Swapped out weights for generator 1')
+    # with graph2.as_default():
+    #     assign_weights = []
+    #     for j in range(len(gen2_weights)):
+    #         assign_weights.append(tf.assign(gan2.gen_vars[j], gen1_weights[j]))
+    #     for assignment in assign_weights:
+    #         sess2.run(assignment)
+    # # print('Swapped out weights for generator 2')
+    #
+    # # gpred_1 = sess1.run(gan1.gen_loss, feed_dict={gan1.training: True, gan1.l: 0.})
+    # # # np.mean(sess1.run(gan1.losses, feed_dict={gan1.reals: images, gan1.training: True}))
+    # # # print('L(D1(G2)): %0.3f' % gpred_1)
+    # # gpred_2 = sess2.run(gan2.gen_loss, feed_dict={gan2.training: True, gan2.l: 0.})
+    # # # np.mean(sess2.run(gan2.losses, feed_dict={gan2.reals: images, gan2.training: True}))
+    # # # print('L(D2(G1)): %0.3f' % gpred_2)
+    #
+    # # Post Generator Swap
+    # s12 = sess1.run(gan1.mixed_v, feed_dict={gan1.reals: images, gan1.training: True, gan1.l: 0.0})
+    # s21 = sess2.run(gan2.mixed_v, feed_dict={gan2.reals: images[:100], gan2.training: True, gan2.l: 0.})
+    # print('s12: %0.3f' % s12)
+    # print('s21: %0.3f' % s21)
+    # score = (s12 / s11) / (s21 / s22)
+    # # score = (gpred_1 / gen_loss1) / (gpred_2 / gen_loss2)
+    # print('Score: %0.4f' % score)
+
+
+if __name__ == '__main__':
+    flags = tf.app.flags
+    flags.DEFINE_string("dataset", "cifar", "The name of dataset [celebA, mnist, cifar]")
+    flags.DEFINE_integer("batch_size", 100, "The size of batch images [100]")
+    flags.DEFINE_integer("latent", 100, "number of latent variables. [100]")
+    flags.DEFINE_string("path", "cifar", "The name of directory where all the models are stored [celebA, mnist, cifar]")
+    FLAGS = flags.FLAGS
+    tf.app.run()

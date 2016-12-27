@@ -12,7 +12,7 @@ class GMAN:
     def __init__(self, num_latent, num_out, batch_size, num_disc, num_channels=3,
                  num_hidden=1024, D_weights=None, G_weights=None, name='GMAN',
                  mixing='arithmetic', weight_type='normal', objective='original',
-                 boosting_variant=None):
+                 boosting_variant=None, self_challenged=False):
         self.num_latent = num_latent
         self.side = num_out
         self.num_channels = num_channels
@@ -25,6 +25,7 @@ class GMAN:
         self.name = name
         self.weight_type = weight_type
         self.channel_size = self.batch_size * self.N
+        self.self_challenged = self_challenged
 
         # boosting variables
         self.aux_vars = []
@@ -227,6 +228,15 @@ class GMAN:
         # Define lambda placeholder
         self.l = tf.placeholder(tf.float32, name='lambda')
 
+        # if lambda is self_learnt
+        if self.self_challenged:
+            trained_l = tf.Variable(initial_value=-2., name='controlled_lambda')
+            tf.scalar_summary('lambda_learnt', trained_l)
+            self.used_l = tf.nn.softplus(trained_l, name='used_lambda')
+            tf.scalar_summary('lambda_used', self.used_l)
+        else:
+            self.used_l = self.l
+
         # Define generator loss
         if obj == 'original':
             self.G_losses = [tf.reduce_mean(tf.log(1-self.Df[ind]))
@@ -238,12 +248,12 @@ class GMAN:
             sign = 1.
         _G_losses = [tf.expand_dims(loss, 0) for loss in self.G_losses]
         _G_losses = tf.concat(0, _G_losses)
-        self.G_loss = mix_prediction(_G_losses, self.l,
+        self.G_loss = mix_prediction(_G_losses, self.used_l,
                                      mean_typ=mixing, weight_typ=self.weight_type,
                                      sign=sign)
 
         # Define minimax objectives for generator
-        self.V_G = mix_prediction(self.V_D, self.l,
+        self.V_G = mix_prediction(self.V_D, self.used_l,
                                   mean_typ=mixing, weight_typ=self.weight_type,
                                   sign=sign)
 
@@ -322,7 +332,8 @@ def main(_):
             gman = GMAN(FLAGS.latent, FLAGS.image_size, FLAGS.batch_size, FLAGS.num_disc,
                         num_channels=num_c, num_hidden=FLAGS.num_hidden,
                         mixing=FLAGS.mixing, weight_type=FLAGS.weighting,
-                        objective=FLAGS.objective, boosting_variant=boosting_variant)
+                        objective=FLAGS.objective, boosting_variant=boosting_variant,
+                        self_challenged=FLAGS.self_learnt)
 
             # Initialize feed_dict
             feed_dict = {gman.real: None, gman.l: lam, gman.lrg: lr, gman.lrd: lr}
@@ -437,6 +448,7 @@ if __name__ == '__main__':
     flags.DEFINE_string("boosting", None, "Mixing type [boost_prediction, boost_training, None]")
     flags.DEFINE_string("weighting", "normal", "Mixing type [normal, log]")
     flags.DEFINE_string("objective", "original", "Generator objective [original, modified]")
+    flags.DEFINE_boolean("self_learnt", False, "Specifies whether lambda is learnt on its own")
     # flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
     # flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image samples [samples]")
     FLAGS = flags.FLAGS
