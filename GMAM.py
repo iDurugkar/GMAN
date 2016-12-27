@@ -19,8 +19,8 @@ def initialize_net_in_different_graph(path, num_latent, image_size, batch_size,
                    objective=objective, boosting_variant=boosting_variant,
                    self_challenged=self_learnt, name=name)
         saver = tf.train.Saver()
-    sess = tf.Session(graph=graph, config=config)
-    saver.restore(sess, path)
+        sess = tf.Session(graph=graph, config=config)
+        saver.restore(sess, path)
     # tf.placeholder()
     return graph, sess, gan
 
@@ -66,7 +66,7 @@ def main(_):
     # mixing = 'arithmetic', weighting = 'normal',
     # objective = 'original', boosting_variant = None,
     # self_learnt = False, name = 'GMAN', config = None
-    for iteration in range(1, 3):
+    for iteration in range(1, 2):
         models = {}
         for model in order:
             if model == 'modified':
