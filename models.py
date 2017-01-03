@@ -53,7 +53,7 @@ def generator(gan):
 
 def discriminator(gan, inp, num, keep_prob, reuse=False):
     gpu_num = 0
-    hidden_units = 256  # gan.h_adv
+    hidden_units = gan.h_adv
     print(hidden_units)
     print(keep_prob)
     with tf.device('/gpu:%d' % gpu_num):
