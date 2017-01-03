@@ -350,6 +350,8 @@ def main(_):
             summary = tf.merge_all_summaries()
             init = tf.initialize_all_variables()
             sess.run(init)
+            with tf.device('/cpu:0'):
+                saver = tf.train.Saver()
 
             try:
                 for j in range(num_epochs):
@@ -401,15 +403,14 @@ def main(_):
                     plot_fakes(images,  num_c, batch_size, c, filename=path+'/%d.png' % j)
 
                     with tf.device('/cpu:0'):
-                        saver = tf.train.Saver()
-                        mpath = saver.save(sess, path + '/model.ckpt')
+                        mpath = saver.save(sess, path + '/model.ckpt', global_step=j)
                         print('Model saved as %s' % mpath)
 
             except KeyboardInterrupt:
                 print('interrupted run')
                 with tf.device('/cpu:0'):
-                    saver = tf.train.Saver()
-                    mpath = saver.save(sess, path + '/model.ckpt')
+                    # saver = tf.train.Saver()
+                    mpath = saver.save(sess, path + '/model.ckpt', global_step=num_epochs)
                     print('Model saved as %s' % mpath)
 
             images = sess.run(gman.fake, feed_dict=feed_dict)[:batch_size]
