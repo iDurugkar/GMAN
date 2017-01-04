@@ -1,180 +1,127 @@
 import matplotlib
-import tensorflow as tf
 import matplotlib.pyplot as plt
-# import seaborn as sns
-# sns.set(font_scale=2.2)
-# sns.set(sns.axes_style('white'), rc={'axes.facecolor': 'white', 'figure.facecolor':'grey',
-#                                      'axes.linecolor': 'grey'})
-import numpy as np
-from os import listdir
-from os.path import isfile, join
 matplotlib.rcParams.update({'font.size': 22})
 
-i = 0
-x2 = []
-temp = []
-x1 = []
-x3 = []
-temp2 = []
+import numpy as np
 
-step = 20
+from os import listdir
+from os.path import isfile, join
 
-for ind in range(1, 5):
-    files = [f for f in listdir('mnist_before_2nd/1_original_%d' % ind) if f.startswith('events')]
+import tensorflow as tf
+
+
+def get_summary_values(root,ind_range=range(1,5),tag='gen_loss',step=20):
+  x = []
+  min_len = np.inf
+
+  for ind in ind_range:
+    xind = []
+    path = root+'%d' % ind
+    files = [f for f in listdir(path) if f.startswith('events')]
     fname = files[-1]
-    for summary in\
-            tf.train.summary_iterator(join('mnist_before_2nd/1_original_%d' % ind, fname)):
-        # ("mnist/mnist_2_geometric_0.0/events.out.tfevents.1477169818.manifold"):
-        # print(summary)
-        try:
-            for s in summary.summary.value:
-                if s.tag.startswith('gen_loss'):
-                    temp.append(s.simple_value)
-                    i += 1
-                    if i == step:
-                        temp2.append(np.mean(temp))
-                        temp = []
-                        i = 0
-        except Exception:
-            print('not iterable')
-    x1.append(temp2)
-    temp2 = []
-    # i += 1
-    # if i > step:
-    #     exit()
-i = 0
-temp = []
 
-for ind in range(1, 5):
-    files = [f for f in listdir('mnist/2_self_%d' % ind) if f.startswith('events')]  # harmonic_0.
-    fname = files[-1]
-    for summary in\
-            tf.train.summary_iterator(join('mnist/2_self_%d' % ind, fname)):
-        # ("mnist/mnist_1/events.out.tfevents.1477248849.manifold"):
-        # print(summary)
-        try:
-            for s in summary.summary.value:
-                if s.tag.startswith('gen_loss'):
-                    temp.append(s.simple_value)
-                    i += 1
-                    if i == step:
-                        temp2.append(np.mean(temp))
-                        temp = []
-                        i = 0
-        except Exception:
-            print('not iterable')
-    x2.append(temp2)
-    # print(temp2)
-    temp2 = []
-i = 0
-temp = []
+    for summary in tf.train.summary_iterator(join(path, fname)):
+      try:
+        for s in summary.summary.value:
+          if s.tag.startswith(tag):
+            xind.append(s.simple_value)
+      except Exception:
+        print('Summary value not iterable')
 
-for ind in range(1, 3):
-    files = [f for f in listdir('mnist/5_self_%d' % ind) if f.startswith('events')]  # 5_harmonic_0._
-    fname = files[-1]
-    print(fname)
-    for summary in\
-        tf.train.summary_iterator(join('mnist/5_self_%d' % ind, fname)):
-        # ("mnist/mnist_5_geometric_0.0/events.out.tfevents.1477175657.manifold"):
-        # print(summary)
-        try:
-            for s in summary.summary.value:
-                if s.tag.startswith('gen_loss'):
-                    temp.append(s.simple_value)
-                    i += 1
-                    if i == step:
-                        temp2.append(np.mean(temp))
-                        temp = []
-                        i = 0
-        except Exception:
-            print('not iterable')
-    x3.append(temp2)
-    temp2 = []
-x1 = np.asarray(x1)
-x2 = np.asarray(x2)
-x3 = np.asarray(x3)
-# from IPython import embed
-# embed()
-print(x3.shape)
-s = np.min([x1.shape[1], x2.shape[1], x3.shape[1]])
-x1 = x1[:, :s]
-x2 = x2[:, :s]
-x3 = x3[:, :s]
+    x.append(xind)
+    min_len = min(min_len,len(xind))
 
-x1_mean = np.mean(x1[1:], axis=0)
-x1_std = np.std(x1[1:], axis=0)
-# t = np.arange(x1_mean.shape[0])
-t = np.arange(step, (x1_mean.shape[0] + 1)*step, step)
-# print(x1_mean.shape)
-# print(x1_std)
-# print(x1.shape)
-# print(x2.shape)
-# print(x3.shape)
+  # set sequence length to shortest sequence
+  for ind in range(len(x)):
+    x[ind] = x[ind][:min_len]
 
-x2_mean = np.mean(x2, axis=0)
-x2_std = np.std(x2, axis=0)
+  # smooth sequences with mean
+  if step > 1:
+    for ind in range(len(x)):
+      xind_split = np.array_split(x[ind],min_len//step,axis=0)
+      x[ind] = [np.mean(xi) for xi in xind_split]
 
-x3_mean = np.mean(x3, axis=0)
-x3_std = np.std(x3, axis=0)
+  return np.asarray(x)
 
-plt.plot(t,x1_mean, 'b-')
-plt.plot(t,x2_mean, 'g-')
-plt.plot(t,x3_mean, 'm-')
-plt.fill_between(t, x1_mean + x1_std, x1_mean - x1_std, facecolor='blue', alpha=0.2)
-plt.fill_between(t, x2_mean + x2_std, x2_mean - x2_std, facecolor='green', alpha=0.5)
-plt.fill_between(t, x3_mean + x3_std, x3_mean - x3_std, facecolor='magenta', alpha=0.5)
-# plt.title('Effect of multiple Discriminators on ')
-plt.legend([r'$N=1$', r'$N=2$', r'$N=5$'])
-plt.xlabel('Iteration #')
-plt.ylabel(r'$log(1 - D(G(z)))$')
-plt.ylim([0.0, -2.])
-plt.tight_layout()
-plt.savefig('mnist/1_original_1/mnist_gen_loss')
+def get_means_stdevs(seqs,window_size=500):
+  seq_tups = []
+  seq_tups_cumstd = []
 
-# plot cumulative standard deviation
-x1_cumstd = np.asarray([np.std(x1[:,tt-500/step:tt],axis=1) for tt in range(int(500/step),x1.shape[1])]).T
-x2_cumstd = np.asarray([np.std(x2[:,tt-500/step:tt],axis=1) for tt in range(int(500/step),x2.shape[1])]).T
-x3_cumstd = np.asarray([np.std(x3[:,tt-500/step:tt],axis=1) for tt in range(int(500/step),x3.shape[1])]).T
-# import IPython as ipy
-# ipy.embed()
-x1_cumstd_mean = x1_cumstd.mean(axis=0)
-x2_cumstd_mean = x2_cumstd.mean(axis=0)
-x3_cumstd_mean = x3_cumstd.mean(axis=0)
-x1_cumstd_std = x1_cumstd.std(axis=0)
-x2_cumstd_std = x2_cumstd.std(axis=0)
-x3_cumstd_std = x3_cumstd.std(axis=0)
-t = t[int(500/step):]
-print(t.shape)
-print(x1_cumstd_mean.shape)
-plt.cla()
-plt.clf()
-plt.semilogy(t,x1_cumstd_mean, 'b-')
-plt.semilogy(t,x2_cumstd_mean, 'g-')
-plt.semilogy(t,x3_cumstd_mean, 'm-')
-plt.semilogy(t, np.ones_like(t) * 1e-2, 'k--')
-# plt.fill_between(t, x1_cumstd_mean + x1_cumstd_std, x1_cumstd_mean - x1_cumstd_std, facecolor='blue', alpha=0.2)
-# plt.fill_between(t, x2_cumstd_mean + x2_cumstd_std, x2_cumstd_mean - x2_cumstd_std, facecolor='green', alpha=0.5)
-# plt.fill_between(t, x3_cumstd_mean + x3_cumstd_std, x3_cumstd_mean - x3_cumstd_std, facecolor='magenta', alpha=0.5)
-# plt.title('Effect of multiple Discriminators on ')
-plt.legend([r'$N=1$', r'$N=2$', r'$N=5$'])
-plt.xlabel('Iteration #')
-plt.ylabel(r'Cumulative STD of $log(1 - D(G(z)))$')
-# plt.ylim([0.0, -4.])
-plt.tight_layout()
-plt.savefig('mnist/1_original_1/mnist_gen_loss_std')
+  # set sequence length to shortest sequence and compute means/stdevs
+  s = np.min([seq.shape[1] for seq in seqs])
+  for seq_ind in range(len(seqs)):
+    seq = seqs[seq_ind][:,:s]
+    seq_mean = np.mean(seq,axis=0)
+    seq_std = np.std(seq,axis=0)
+
+    seq_tups += [(seq_mean,seq_std)]
+
+    adj_win = int(window_size/step)
+    seq_cumstd = np.asarray([np.std(seq[:,tt-adj_win:tt],axis=1) for tt in range(adj_win,s)]).T
+    seq_cumstd_mean = np.mean(seq_cumstd,axis=0)
+    seq_cumstd_std = np.mean(seq_cumstd,axis=0)
+
+    seq_tups_cumstd += [(seq_cumstd_mean,seq_cumstd_std)]
+
+  t = np.arange(step, (s + 1)*step, step)
+  t_cumstd = t[adj_win:]
+
+  return t, seq_tups, t_cumstd, seq_tups_cumstd
 
 
-# x2_mean = np.mean(x2, axis=0)
-# x2_std = np.std(x2, axis=0)
-# x3_mean = np.mean(x3, axis=0)
-# x3_std = np.std(x3, axis=0)
-# t = np.arange(step, (x3_mean.shape[0] + 1)*step, step)
-# plt.plot(t, x2_mean, 'g-')
-# plt.fill_between(t, x2_mean + x2_std, x2_mean - x2_std, facecolor='green', alpha=0.5)
-# plt.plot(t, x3_mean, 'm-')
-# plt.fill_between(t, x3_mean + x3_std, x3_mean - x3_std, facecolor='magenta', alpha=0.5)
-# plt.xlabel('Iteration #')
-# plt.ylabel(r'$\lambda$')
-# plt.legend([r'$N=2$', r'$N=5$'])
-# plt.tight_layout()
-# plt.savefig('mnist/1_original_1/learnt_lambda')
+def make_plots(saveto_1,saveto_2,sum_configs,plt_configs):
+  seqs = [get_summary_values(*sconf) for sconf in sum_configs]
+  t, seq_tups, t_cumstd, seq_tups_cumstd = get_means_stdevs(seqs)
+
+  for sum_id, pconf in enumerate(plt_configs):
+    color, linetyp, alpha, label = pconf
+    seq_mean, seq_std = seq_tups[sum_id]
+    plt.plot(t,seq_mean,color+linetyp,label=label)
+    plt.fill_between(t, seq_mean - seq_std, seq_mean + seq_std, facecolor=color, alpha=alpha)
+
+  plt.legend()
+  plt.xlabel('Iteration #')
+  plt.ylabel(r'$F(V(D,G))$')
+  plt.ylim([-2, 0])
+  plt.tight_layout()
+  plt.savefig(saveto_1)
+
+  plt.cla()
+  plt.clf()
+
+  for sum_id, pconf in enumerate(plt_configs):
+    color, linetyp, alpha, label = pconf
+    seq_mean, seq_std = seq_tups_cumstd[sum_id]
+    print(seq_mean)
+    plt.semilogy(t_cumstd,seq_mean,color+linetyp,label=label)
+
+  plt.semilogy(t_cumstd, np.ones_like(t_cumstd) * 1e-2, 'k--')
+
+  plt.legend()
+  plt.xlabel('Iteration #')
+  plt.ylabel(r'Cumulative STD of $F(V(D,G))$')
+  plt.tight_layout()
+  plt.savefig(saveto_2)
+
+
+if __name__ == '__main__':
+
+  sum_configs = []  # root, ind_range, tag, step
+  plt_configs = []  # line/fill color, line type, alpha, legend label
+
+  # Summary 1
+  sum_configs += [('mnist_before_2nd/1_original_',range(1,5),'gen_loss',20)]
+  plt_configs += [('b','-',0.2,r'$N=1$')]
+
+  # Summary 2
+  sum_configs += [('mnist/2_self_',range(1,5),'gen_loss',20)]
+  plt_configs += [('g','-',0.5,r'$N=2$')]
+
+  # Summary 3
+  sum_configs += [('mnist/5_self_',range(1,5),'gen_loss',20)]
+  plt_configs += [('m','-',0.5,r'$N=5$')]
+
+  saveto_1 = 'mnist/1_original_1/mnist_gen_loss'
+  saveto_2 = 'mnist/1_original_1/mnist_gen_loss_std'
+
+  make_plots(saveto_1,saveto_2,sum_configs,plt_configs)
