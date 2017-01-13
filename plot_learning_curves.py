@@ -58,8 +58,8 @@ def get_means_stdevs(seqs,window_size=500):
 
     adj_win = int(window_size/step)
     seq_cumlogstd = np.log(np.asarray([np.std(seq[:,tt-adj_win:tt],axis=1) for tt in range(adj_win,s)]).T)
-    seq_cumlogstd_mean = np.mean(seq_cumstd,axis=0)
-    seq_cumlogstd_std = np.std(seq_cumstd,axis=0)
+    seq_cumlogstd_mean = np.mean(seq_cumlogstd,axis=0)
+    seq_cumlogstd_std = np.std(seq_cumlogstd,axis=0)
 
     seq_tups_cumlogstd += [(seq_cumlogstd_mean,seq_cumlogstd_std)]
 
