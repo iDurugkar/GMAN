@@ -57,16 +57,16 @@ def get_means_stdevs(seqs,window_size=500):
     seq_tups += [(seq_mean,seq_std)]
 
     adj_win = int(window_size/step)
-    seq_cumstd = np.asarray([np.std(seq[:,tt-adj_win:tt],axis=1) for tt in range(adj_win,s)]).T
-    seq_cumstd_mean = np.mean(seq_cumstd,axis=0)
-    seq_cumstd_std = np.mean(seq_cumstd,axis=0)
+    seq_cumlogstd = np.log(np.asarray([np.std(seq[:,tt-adj_win:tt],axis=1) for tt in range(adj_win,s)]).T)
+    seq_cumlogstd_mean = np.mean(seq_cumstd,axis=0)
+    seq_cumlogstd_std = np.std(seq_cumstd,axis=0)
 
-    seq_tups_cumstd += [(seq_cumstd_mean,seq_cumstd_std)]
+    seq_tups_cumlogstd += [(seq_cumlogstd_mean,seq_cumlogstd_std)]
 
   t = np.arange(step, (s + 1)*step, step)
-  t_cumstd = t[adj_win:]
+  t_cumlogstd = t[adj_win:]
 
-  return t, seq_tups, t_cumstd, seq_tups_cumstd
+  return t, seq_tups, t_cumlogstd, seq_tups_cumlogstd
 
 
 def make_plots(saveto_1,saveto_2,sum_configs,plt_configs):
@@ -92,8 +92,8 @@ def make_plots(saveto_1,saveto_2,sum_configs,plt_configs):
   for sum_id, pconf in enumerate(plt_configs):
     color, linetyp, alpha, label = pconf
     seq_mean, seq_std = seq_tups_cumstd[sum_id]
-    print(seq_mean)
-    plt.semilogy(t_cumstd,seq_mean,color+linetyp,label=label)
+    plt.semilogy(t_cumstd,np.exp(seq_mean),color+linetyp,label=label)
+    plt.fill_between(t, np.exp(seq_mean - seq_std), np.exp(seq_mean + seq_std), facecolor=color, alpha=alpha)
 
   plt.semilogy(t_cumstd, np.ones_like(t_cumstd) * 1e-2, 'k--')
 
