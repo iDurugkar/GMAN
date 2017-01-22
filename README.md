@@ -1,4 +1,14 @@
-Code used while testing MNIST:
+## Generative Multi-Adversarial Networks
+<p>This code is a representative of the code used to run experiments for the paper
+[Generative Multi-Adversarial Networks](https://openreview.net/forum?id=SJDaqqveg) currently
+under review for [ICLR 2017](http://www.iclr.cc/doku.php?id=ICLR2017:main&redirect=1).</p>
+
+<p>With the current code you can run GMAN with 1 or more discriminators and either the modified objective
+or the originally derived one.</p>
+
+## Instructions
+
+Code used while training MNIST:
 ```
 python GMAN.py --dataset mnist --num_disc 1 --lam 0. --path mnist/arith1_0 --objective modified --num_hidden 128
 ```
