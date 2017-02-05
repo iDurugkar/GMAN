@@ -1,7 +1,7 @@
 ## Generative Multi-Adversarial Networks
 <p>This code is a representative of the code used to run experiments for the paper
-[Generative Multi-Adversarial Networks](https://openreview.net/forum?id=SJDaqqveg) currently
-under review for [ICLR 2017](http://www.iclr.cc/doku.php?id=ICLR2017:main&redirect=1).</p>
+[Generative Multi-Adversarial Networks](https://openreview.net/forum?id=Byk-VI9eg) currently
+under review for [ICLR 2017](http://www.iclr.cc).</p>
 
 <p>With the current code you can run GMAN with 1 or more discriminators and either the modified objective
 or the originally derived one.</p>
