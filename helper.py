@@ -193,8 +193,8 @@ def mix_prediction(losses, lam=0., mean_typ='arithmetic', weight_typ='normal', s
         loss = sign*tf.exp(weighted_arithmetic(weights, log_losses))
     else:
         mn = tf.reduce_min(losses) - sf
-        inv_losses = tf.inv(losses-mn)
-        loss = mn + tf.inv(weighted_arithmetic(weights, inv_losses))
+        inv_losses = tf.reciprocal(losses-mn)
+        loss = mn + tf.reciprocal(weighted_arithmetic(weights, inv_losses))
     
     return loss
 
